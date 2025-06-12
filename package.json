@@ -1,0 +1,57 @@
+{
+  "name": "prokeys",
+  "version": "2.0.0",
+  "description": "Smart Clipboard Typing Tool",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "dist": "electron-builder --mac",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "keywords": [
+    "clipboard",
+    "typing",
+    "productivity",
+    "macos"
+  ],
+  "author": "ProKeys",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^27.3.11",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.prokeys.app",
+    "productName": "ProKeys",
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "ProKeys.png",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "entitlements.mac.plist",
+      "entitlementsInherit": "entitlements.mac.plist",
+      "extendInfo": {
+        "NSAppleEventsUsageDescription": "ProKeys needs access to system events for keystroke simulation.",
+        "NSAccessibilityUsageDescription": "ProKeys needs accessibility access to monitor keyboard input and simulate keystrokes.",
+        "NSSystemEventsUsageDescription": "ProKeys needs access to system events to monitor keyboard input and automate typing.",
+        "NSInputMonitoringUsageDescription": "ProKeys needs to monitor keyboard input to detect trigger keys and provide smart typing functionality."
+      }
+    },
+    "files": [
+      "**/*",
+      "!backup_old${/*}",
+      "!venv${/*}",
+      "!*.py",
+      "prokeys.py",
+      "!requirements.txt"
+    ]
+  },
+  "type": "commonjs",
+  "dependencies": {
+    "electron-store": "^8.1.0"
+  }
+}

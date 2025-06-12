@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProKeys</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-left">
+                <h1 class="loading-title">ProKeys</h1>
+            </div>
+            <div class="loading-right">
+                <img src="ProKeys.gif" alt="ProKeys Animation" class="loading-gif">
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="main-app" class="main-app hidden">
+        <div class="container">
+            <section class="status-section">
+                <h2>Status</h2>
+                <div class="status-container">
+                    <div class="status-indicator">
+                        <span id="status-dot" class="status-dot stopped"></span>
+                        <span id="status-text">Stopped</span>
+                    </div>
+                    <button id="toggle-btn" class="btn btn-primary">Start ProKeys</button>
+                </div>
+            </section>
+
+            <section class="config-section">
+                <h2>Configuration</h2>
+                
+                <div class="speed-control">
+                    <label for="speed-slider">Typing Speed:</label>
+                    <div class="slider-container">
+                        <input type="range" id="speed-slider" min="9" max="999" value="120">
+                        <span id="speed-value">120 WPM</span>
+                    </div>
+                </div>
+
+                <div class="presets">
+                    <label>Quick Presets:</label>
+                    <div class="preset-buttons">
+                        <button class="btn btn-preset" data-speed="30">30</button>
+                        <button class="btn btn-preset" data-speed="60">60</button>
+                        <button class="btn btn-preset" data-speed="120">120</button>
+                        <button class="btn btn-preset" data-speed="200">200</button>
+                        <button class="btn btn-preset" data-speed="400">400</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="controls-section">
+                <h2>Controls</h2>
+                <div class="control-item">
+                    <span class="control-label">Trigger:</span>
+                    <span class="control-value trigger">⌘ + ⇧ + V</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-label">Exit:</span>
+                    <span class="control-value exit">⎋ (Escape)</span>
+                </div>
+            </section>
+            
+            <div class="footer-content">
+                <p class="made-by">Made by Lakshman Turlapati</p>
+                <p class="version" id="version-link">v2.0.0</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
