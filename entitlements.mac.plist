@@ -33,8 +33,6 @@
     <true/>
     
     <!-- Allow child processes (Python subprocess) -->
-    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
-    <true/>
     <key>com.apple.security.cs.disable-executable-page-protection</key>
     <true/>
 </dict>

@@ -30,10 +30,9 @@
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "ProKeys.png",
-      "hardenedRuntime": true,
+      "identity": null,
+      "hardenedRuntime": false,
       "gatekeeperAssess": false,
-      "entitlements": "entitlements.mac.plist",
-      "entitlementsInherit": "entitlements.mac.plist",
       "extendInfo": {
         "NSAppleEventsUsageDescription": "ProKeys needs access to system events for keystroke simulation.",
         "NSAccessibilityUsageDescription": "ProKeys needs accessibility access to monitor keyboard input and simulate keystrokes.",
@@ -41,17 +40,31 @@
         "NSInputMonitoringUsageDescription": "ProKeys needs to monitor keyboard input to detect trigger keys and provide smart typing functionality."
       }
     },
+    "afterPack": "./fix-permissions.js",
     "files": [
       "**/*",
       "!backup_old${/*}",
       "!venv${/*}",
       "!*.py",
-      "prokeys.py",
       "!requirements.txt"
+    ],
+    "extraResources": [
+      {
+        "from": "venv_portable",
+        "to": "venv_portable",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "prokeys.py",
+        "to": "prokeys.py"
+      }
     ]
   },
   "type": "commonjs",
   "dependencies": {
+    "electron-log": "^5.4.1",
     "electron-store": "^8.1.0"
   }
 }

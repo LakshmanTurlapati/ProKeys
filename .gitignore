@@ -65,3 +65,10 @@ backup_old/
 
 # Runtime
 prokeys_config.json
+
+.claude
+
+# Allow release DMG in repository root
+!/*.dmg
+
+

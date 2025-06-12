@@ -91,8 +91,8 @@ def load_config() -> dict:
     
     # Default configuration
     return {
-        "typing_speed_wpm": 120,
-        "delay": wpm_to_delay(120),
+        "typing_speed_wpm": 250,
+        "delay": wpm_to_delay(250),
         "trigger_key": "cmd+shift+v"
     }
 
@@ -108,12 +108,12 @@ def save_config(config: dict) -> bool:
 
 def validate_wpm(wpm: int) -> bool:
     """Validate WPM is in acceptable range."""
-    return 9 <= wpm <= 9999
+    return 99 <= wpm <= 5000
 
 def set_typing_speed(wpm: int) -> bool:
     """Set typing speed in WPM."""
     if not validate_wpm(wpm):
-        print(f"❌ Error: WPM must be between 9 and 9999. Got: {wpm}")
+        print(f"❌ Error: WPM must be between 99 and 5000. Got: {wpm}")
         return False
     
     config = load_config()
@@ -155,13 +155,11 @@ def show_config():
     
     # Speed reference
     print("\n📊 Speed Reference:")
-    print("   9-29 WPM:    🐌 Very Slow (safe for any app)")
-    print("  30-59 WPM:    🚶 Slow (reliable)")
-    print("  60-119 WPM:   🚴 Moderate (recommended)")
-    print(" 120-199 WPM:   🏃 Fast (may skip in some apps)")
-    print(" 200-399 WPM:   🚀 Very Fast (for simple text)")
-    print(" 400-999 WPM:   ⚡ Lightning (extreme speed)")
-    print("1000-9999 WPM:  🚀💥 Ludicrous Speed (instant)")
+    print("  99-149 WPM:   🚴 Moderate (recommended)")
+    print(" 150-249 WPM:   🏃 Fast (may skip in some apps)")
+    print(" 250-499 WPM:   🚀 Very Fast (for simple text)")
+    print(" 500-999 WPM:   ⚡ Lightning (extreme speed)")
+    print("1000-5000 WPM:  🚀💥 Ludicrous Speed (instant)")
 
 def interactive_config():
     """Interactive configuration mode."""
@@ -173,18 +171,18 @@ def interactive_config():
     
     print(f"Current typing speed: {current_wpm} WPM")
     print("\nSpeed recommendations:")
-    print("  • 60-120 WPM: Best for most applications")
-    print("  • 30-60 WPM: Slower but more reliable")
-    print("  • 120+ WPM: Fast but may skip in some apps")
-    print("  • 200+ WPM: Very fast, simple text only")
+    print("  • 100-250 WPM: Best for most applications")
+    print("  • 250-500 WPM: Faster but may skip in some apps")
+    print("  • 500+ WPM: Very fast, simple text only")
+    print("  • 1000+ WPM: Extreme speed")
     
     # Speed presets
     print("\n🚀 Quick Presets:")
-    print("  [1] 30 WPM  - 🐌 Very Safe")
-    print("  [2] 60 WPM  - 🚶 Safe")
-    print("  [3] 120 WPM - 🚴 Recommended")
-    print("  [4] 200 WPM - 🏃 Fast")
-    print("  [5] 400 WPM - ⚡ Lightning")
+    print("  [1] 100 WPM  - 🚴 Moderate")
+    print("  [2] 250 WPM  - 🏃 Fast")
+    print("  [3] 500 WPM  - 🚀 Very Fast")
+    print("  [4] 1000 WPM - ⚡ Lightning")
+    print("  [5] 2000 WPM - 🚀💥 Ludicrous")
     print("  [0] Custom WPM")
     
     while True:
@@ -196,17 +194,17 @@ def interactive_config():
                 return
             
             if choice == "1":
-                wpm = 30
+                wpm = 100
             elif choice == "2":
-                wpm = 60
+                wpm = 250
             elif choice == "3":
-                wpm = 120
+                wpm = 500
             elif choice == "4":
-                wpm = 200
+                wpm = 1000
             elif choice == "5":
-                wpm = 400
+                wpm = 2000
             elif choice == "0":
-                custom_input = input("Enter custom WPM (9-9999): ").strip()
+                custom_input = input("Enter custom WPM (99-5000): ").strip()
                 if not custom_input:
                     print("No changes made.")
                     return
@@ -223,7 +221,7 @@ def interactive_config():
                     print("\n❌ Failed to save configuration.")
                     return
             else:
-                print(f"❌ Please enter a WPM between 9 and 9999.")
+                print(f"❌ Please enter a WPM between 99 and 5000.")
                 
         except ValueError:
             print("❌ Please enter a valid number.")

@@ -83,6 +83,17 @@ function setupEventListeners() {
     window.electronAPI.onProKeysStopped(() => {
         updateUI(false);
     });
+    
+    // Listen for tray-initiated events
+    window.electronAPI.onProKeysStarted?.(() => {
+        updateUI(true);
+    });
+    
+    window.electronAPI.onConfigUpdated?.((newConfig) => {
+        config = newConfig;
+        speedSlider.value = config.typing_speed_wpm;
+        speedValue.textContent = `${config.typing_speed_wpm} WPM`;
+    });
 }
 
 async function toggleProKeys() {
@@ -102,10 +113,25 @@ async function toggleProKeys() {
                 updateUI(true);
             } else {
                 console.error('Start error:', result.error);
+                
+                // Show detailed error to user with better formatting
+                const errorMessage = `Failed to start ProKeys:\n\n${result.error}\n\n` +
+                    `Debug Information:\n` +
+                    `• Check Console.app logs for "ProKeys"\n` +
+                    `• Log file: ~/Library/Logs/ProKeys/\n` +
+                    `• Run debug script: ./debug-app.sh\n\n` +
+                    `If the issue persists, please report it with the log files.`;
+                
+                alert(errorMessage);
+                
                 // Check if it's a permission error
                 if (result.needsPermission || result.error.includes('accessibility') || result.error.includes('permission')) {
                     await requestPermissionWithDialog();
-                    // Don't auto-retry - let user try manually after granting permission
+                } else {
+                    // For other errors, provide helpful guidance
+                    console.log('Detailed error information:', result);
+                    console.log('Log file location: ~/Library/Logs/ProKeys/');
+                    console.log('Run ./debug-app.sh for detailed debugging');
                 }
             }
         }

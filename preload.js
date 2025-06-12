@@ -22,5 +22,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   onProKeysStopped: (callback) => {
     ipcRenderer.on('prokeys-stopped', () => callback());
+  },
+  onProKeysStarted: (callback) => {
+    ipcRenderer.on('prokeys-started', () => callback());
+  },
+  onConfigUpdated: (callback) => {
+    ipcRenderer.on('config-updated', (event, data) => callback(data));
   }
 });
