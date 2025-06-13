@@ -1,6 +1,7 @@
 # Dependencies
 node_modules/
 venv/
+venv_portable/
 .npm/
 
 # Build outputs
@@ -11,6 +12,14 @@ build/
 *.exe
 *.deb
 *.AppImage
+*.zip
+*.blockmap
+
+# Electron builder artifacts
+builder-debug.yml
+latest-mac.yml
+latest-linux.yml
+latest.yml
 
 # Logs
 *.log
@@ -67,8 +76,5 @@ backup_old/
 prokeys_config.json
 
 .claude
-
-# Allow release DMG in repository root
-!/*.dmg
 
 

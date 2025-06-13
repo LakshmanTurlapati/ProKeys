@@ -14,7 +14,23 @@
 
 ## Installation
 
-Download the DMG above, open it, and drag the **ProKeys** icon into your **Applications** folder. Launch the app and you're ready to roll—no terminal commands or extra setup.
+**TL;DR:** I'm too broke to shell out $100/year for an Apple Developer certificate just for this little project, so no fancy signed binaries for you! 🤷‍♂️
+
+**The good news:** Everything you need is right here! Just run the build script and create your own macOS application:
+
+```bash
+./build-app.sh
+```
+
+This magical script will:
+- Check all your dependencies (and yell at you if something's missing)
+- Build a perfectly functional ProKeys app
+- Create a DMG file you can actually use
+- Give you step-by-step instructions for dealing with macOS's trust issues
+
+**Why this approach?** Because $100/year > my current budget for side projects, and honestly, building it yourself is more fun anyway. Plus, you get the satisfaction of knowing exactly what's in your app!
+
+The resulting app will be "self-signed" (fancy talk for "your Mac built it, so it should trust it"), and after a one-time security dance with macOS, it'll work just like any other app.
 
 ## What is ProKeys?
 

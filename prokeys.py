@@ -377,6 +377,9 @@ class ProKeys:
                 
             self.pressed_keys.add(processed_key)
             
+            # Debug: Print key press (uncomment for debugging)
+            # print(f"Key pressed: {processed_key} | Currently pressed: {self.pressed_keys}")
+            
             # Check if trigger combination is pressed
             if self.trigger_keys.issubset(self.pressed_keys):
                 print(f"\n🚀 Trigger activated! Reading clipboard and typing content...")
@@ -384,10 +387,12 @@ class ProKeys:
                 threading.Thread(target=self._handle_trigger, daemon=True).start()
                 
         except UnicodeDecodeError:
-            # Handle macOS pynput Unicode decode issues
+            # Handle macOS pynput Unicode decode issues for special characters
+            # This is common on macOS and shouldn't cause the app to exit
             pass
-        except Exception:
-            # Handle any other key processing errors
+        except AttributeError:
+            # Handle cases where key might not have expected attributes
+            # This can happen with certain special keys on macOS
             pass
     
     def on_key_release(self, key):
@@ -399,23 +404,30 @@ class ProKeys:
             else:
                 processed_key = key
                 
-            try:
-                self.pressed_keys.discard(processed_key)
-            except KeyError:
-                pass
+            # Remove key from pressed keys set
+            self.pressed_keys.discard(processed_key)
             
-            # Exit on Escape key
+            # Debug: Print key release (uncomment for debugging)
+            # print(f"Key released: {processed_key} | Currently pressed: {self.pressed_keys}")
+            
+            # Exit ONLY on actual Escape key - be very specific
             if key == Key.esc:
                 print("\n👋 Exiting ProKeys...")
                 return False
                 
         except UnicodeDecodeError:
-            # Handle macOS pynput Unicode decode issues
-            if key == Key.esc:
-                print("\n👋 Exiting ProKeys...")
-                return False
-        except Exception:
-            # Handle any other key processing errors
+            # Handle macOS pynput Unicode decode issues for special characters
+            # Only check for Escape if we can actually identify the key
+            try:
+                if key == Key.esc:
+                    print("\n👋 Exiting ProKeys...")
+                    return False
+            except:
+                # If we can't even check for Escape, just continue
+                pass
+        except AttributeError:
+            # Handle cases where key might not have expected attributes
+            # This can happen with certain special keys on macOS
             pass
     
     def _handle_trigger(self):
