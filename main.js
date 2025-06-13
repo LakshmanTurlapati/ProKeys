@@ -25,7 +25,8 @@ let pythonProcess = null;
 const defaultConfig = {
   typing_speed_wpm: 120,
   delay: 0.01,
-  trigger_key: "cmd+shift+v"
+  trigger_key: "cmd+shift+v",
+  windows_mode: false
 };
 
 function createWindow() {
@@ -364,6 +365,16 @@ async function startProKeys() {
       '--trigger-key', config.trigger_key,
       '--delay', config.delay.toString()
     ];
+    
+    // Add windows-mode flag if enabled
+    if (config.windows_mode) {
+      spawnArgs.push('--windows-mode');
+    }
+    
+    // Add debug flag for troubleshooting (can be enabled via config later)
+    if (config.debug) {
+      spawnArgs.push('--debug');
+    }
     log.info(`Spawn arguments: ${JSON.stringify(spawnArgs)}`);
     
     try {

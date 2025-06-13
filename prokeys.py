@@ -27,7 +27,7 @@ try:
     import pyperclip
     import pynput
     from pynput import keyboard
-    from pynput.keyboard import Key, Listener
+    from pynput.keyboard import Key, Listener, KeyCode
 except ImportError as e:
     print(f"Missing required dependencies: {e}")
     print("Please install them using: pip install pyperclip pynput")
@@ -93,7 +93,8 @@ def load_config() -> dict:
     return {
         "typing_speed_wpm": 250,
         "delay": wpm_to_delay(250),
-        "trigger_key": "cmd+shift+v"
+        "trigger_key": "cmd+shift+v",
+        "windows_mode": False
     }
 
 def save_config(config: dict) -> bool:
@@ -231,14 +232,17 @@ def interactive_config():
 
 
 class ProKeys:
-    def __init__(self, delay: float = 0.01, trigger_key: str = "cmd+shift+v"):
+    def __init__(self, delay: float = 0.01, trigger_key: str = "cmd+shift+v", windows_mode: bool = False, debug: bool = False):
         self.delay = delay
         self.trigger_key = trigger_key
+        self.windows_mode = windows_mode
+        self.debug = debug
         self.keyboard_controller = pynput.keyboard.Controller()
         self.listener = None
         self.running = False
         self.trigger_keys = self._parse_trigger_key(trigger_key)
         self.pressed_keys = set()
+        
         
     def _parse_trigger_key(self, trigger_key: str) -> set:
         """Parse trigger key combination string into a set of keys."""
@@ -283,7 +287,7 @@ class ProKeys:
             return ""
     
     def type_content(self, content: str) -> None:
-        """Type content character by character with proper handling of special characters."""
+        """Type content using the most reliable method for the current platform."""
         if not content:
             print("Clipboard is empty or could not be read.")
             return
@@ -295,76 +299,154 @@ class ProKeys:
         time.sleep(0.5)
         
         try:
-            lines = content.split('\n')
-            total_chars = 0
-            
-            for line_num, line in enumerate(lines):
-                if line_num > 0:
-                    # Press Enter to go to new line
-                    self.keyboard_controller.press(Key.enter)
-                    self.keyboard_controller.release(Key.enter)
-                    total_chars += 1
-                    
-                    if self.delay > 0:
-                        time.sleep(self.delay)
-                    
-                    # Handle indentation smartly
-                    leading_whitespace = len(line) - len(line.lstrip())
-                    if leading_whitespace > 0:
-                        # Clear any auto-indentation first by going to beginning of line
-                        self.keyboard_controller.press(Key.home)
-                        self.keyboard_controller.release(Key.home)
-                        
-                        if self.delay > 0:
-                            time.sleep(self.delay * 2)  # Slightly longer delay
-                        
-                        # Type the exact indentation
-                        for i in range(leading_whitespace):
-                            if i < len(line) and line[i] == '\t':
-                                self.keyboard_controller.press(Key.tab)
-                                self.keyboard_controller.release(Key.tab)
-                            else:
-                                self.keyboard_controller.type(' ')
-                            
-                            if self.delay > 0:
-                                time.sleep(self.delay)
-                        
-                        total_chars += leading_whitespace
-                    
-                    # Type the rest of the line (non-whitespace content)
-                    line_content = line.lstrip()
-                else:
-                    # First line - type as-is
-                    line_content = line
+            if self.windows_mode:
+                # Use clipboard-based approach for Windows mode (most reliable)
+                self._type_content_clipboard(content)
+            else:
+                # Use traditional character-by-character typing for Mac mode
+                self._type_content_traditional(content)
                 
-                # Type the actual content of the line
-                for char in line_content:
-                    if char == '\t':
-                        self.keyboard_controller.press(Key.tab)
-                        self.keyboard_controller.release(Key.tab)
-                    else:
-                        try:
-                            self.keyboard_controller.type(char)
-                        except Exception as e:
-                            print(f"Warning: Could not type character '{char}': {e}")
-                            continue
-                    
-                    # Add delay between keystrokes
-                    if self.delay > 0:
-                        time.sleep(self.delay)
-                    
-                    total_chars += 1
-                    
-                    # Print progress every 100 characters
-                    if total_chars % 100 == 0:
-                        print(f"Progress: {total_chars}/{len(content)} characters typed")
-            
-            print(f"✓ Successfully typed {len(content)} characters!")
-            
         except KeyboardInterrupt:
             print("\n✗ Typing interrupted by user.")
         except Exception as e:
             print(f"\n✗ Error during typing: {e}")
+            # Fallback to Unicode typing if primary method fails
+            try:
+                print("Trying fallback method...")
+                self._type_content_unicode_fallback(content)
+            except Exception as fallback_error:
+                print(f"✗ Fallback method also failed: {fallback_error}")
+    
+    def _type_content_clipboard(self, content: str) -> None:
+        """Type content using clipboard + Ctrl+V method (most reliable for Windows virtual desktop)."""
+        if self.debug:
+            print("[DEBUG] Using clipboard-based input method")
+        
+        try:
+            # Store original clipboard content
+            original_clipboard = ""
+            try:
+                original_clipboard = pyperclip.paste()
+            except:
+                pass  # Ignore if clipboard is empty or inaccessible
+            
+            # Set our content to clipboard
+            pyperclip.copy(content)
+            
+            # Short delay to ensure clipboard is set
+            time.sleep(0.1)
+            
+            # Send Ctrl+V to paste
+            if self.debug:
+                print("[DEBUG] Sending Ctrl+V to paste content")
+            
+            self.keyboard_controller.press(Key.ctrl_l)
+            time.sleep(0.05)
+            self.keyboard_controller.press(KeyCode.from_char('v'))
+            time.sleep(0.05)
+            self.keyboard_controller.release(KeyCode.from_char('v'))
+            time.sleep(0.05)
+            self.keyboard_controller.release(Key.ctrl_l)
+            
+            # Wait for paste to complete
+            time.sleep(0.2)
+            
+            # Restore original clipboard content
+            try:
+                if original_clipboard:
+                    pyperclip.copy(original_clipboard)
+            except:
+                pass  # Ignore if restoration fails
+            
+            print(f"✓ Successfully pasted {len(content)} characters using clipboard method!")
+            
+        except Exception as e:
+            print(f"✗ Clipboard method failed: {e}")
+            raise  # Re-raise to trigger fallback
+    
+    def _type_content_unicode_fallback(self, content: str) -> None:
+        """Fallback method using pure Unicode typing (no virtual key codes)."""
+        if self.debug:
+            print("[DEBUG] Using Unicode fallback input method")
+        
+        try:
+            # Use pure Unicode typing - let pynput handle all character translation
+            self.keyboard_controller.type(content)
+            
+            print(f"✓ Successfully typed {len(content)} characters using Unicode method!")
+            
+        except Exception as e:
+            print(f"✗ Unicode fallback method failed: {e}")
+            raise
+    
+    def _type_content_traditional(self, content: str) -> None:
+        """Traditional character-by-character typing for Mac mode."""
+        lines = content.split('\n')
+        total_chars = 0
+        
+        for line_num, line in enumerate(lines):
+            if line_num > 0:
+                # Press Enter to go to new line
+                self.keyboard_controller.press(Key.enter)
+                self.keyboard_controller.release(Key.enter)
+                total_chars += 1
+                
+                if self.delay > 0:
+                    time.sleep(self.delay)
+                
+                # Handle indentation smartly
+                leading_whitespace = len(line) - len(line.lstrip())
+                if leading_whitespace > 0:
+                    # Clear any auto-indentation first by going to beginning of line
+                    self.keyboard_controller.press(Key.home)
+                    self.keyboard_controller.release(Key.home)
+                    
+                    if self.delay > 0:
+                        time.sleep(self.delay * 2)  # Slightly longer delay
+                    
+                    # Type the exact indentation
+                    for i in range(leading_whitespace):
+                        if i < len(line) and line[i] == '\t':
+                            self.keyboard_controller.press(Key.tab)
+                            self.keyboard_controller.release(Key.tab)
+                        else:
+                            self.keyboard_controller.type(' ')
+                        
+                        if self.delay > 0:
+                            time.sleep(self.delay)
+                    
+                    total_chars += leading_whitespace
+                
+                # Type the rest of the line (non-whitespace content)
+                line_content = line.lstrip()
+            else:
+                # First line - type as-is
+                line_content = line
+            
+            # Type the actual content of the line
+            for char in line_content:
+                if char == '\t':
+                    self.keyboard_controller.press(Key.tab)
+                    self.keyboard_controller.release(Key.tab)
+                else:
+                    try:
+                        # Use normal typing for Mac mode
+                        self.keyboard_controller.type(char)
+                    except Exception as e:
+                        print(f"Warning: Could not type character '{char}': {e}")
+                        continue
+                
+                # Add delay between keystrokes
+                if self.delay > 0:
+                    time.sleep(self.delay)
+                
+                total_chars += 1
+                
+                # Print progress every 100 characters
+                if total_chars % 100 == 0:
+                    print(f"Progress: {total_chars}/{len(content)} characters typed")
+        
+        print(f"✓ Successfully typed {len(content)} characters!")
     
     def on_key_press(self, key):
         """Handle key press events."""
@@ -517,6 +599,20 @@ Configuration:
         help='Show current configuration and exit'
     )
     
+    parser.add_argument(
+        '--windows-mode',
+        action='store_true',
+        default=config.get('windows_mode', False),
+        help=f'Use Windows keyboard layout mode (config: {config.get("windows_mode", False)})'
+    )
+    
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Enable debug mode to see what keys are being sent'
+    )
+    
+    
     args = parser.parse_args()
     
     # Show config if requested
@@ -532,9 +628,13 @@ Configuration:
     # Show current settings
     delay_to_wpm = 12.0 / args.delay if args.delay > 0 else 999
     print(f"⚡ ProKeys starting with {delay_to_wpm:.0f} WPM (delay: {args.delay:.4f}s)")
+    if args.windows_mode:
+        print(f"🪟 Windows mode enabled - using clipboard-based input for maximum compatibility")
+    if args.debug:
+        print("🐛 Debug mode enabled - will show input method details")
     
     try:
-        prokeys = ProKeys(delay=args.delay, trigger_key=args.trigger_key)
+        prokeys = ProKeys(delay=args.delay, trigger_key=args.trigger_key, windows_mode=args.windows_mode, debug=args.debug)
         
         if args.once:
             prokeys.paste_once()
