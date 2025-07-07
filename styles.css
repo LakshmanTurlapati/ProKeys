@@ -288,49 +288,6 @@ h2 {
     color: var(--accent-primary);
 }
 
-/* Windows Mode Control */
-.windows-mode-control {
-    margin: 15px 0;
-}
-
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    color: var(--text-primary);
-}
-
-.checkbox {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    border-radius: 4px;
-    border: 1px solid var(--border-color);
-    background: var(--bg-secondary);
-    -webkit-app-region: no-drag;
-}
-
-.checkbox:checked {
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-    border-color: var(--accent-primary);
-}
-
-.checkbox:checked::after {
-    content: '✓';
-    display: block;
-    text-align: center;
-    color: white;
-    font-size: 12px;
-    line-height: 16px;
-}
-
-.info-icon {
-    font-size: 12px;
-    color: var(--text-secondary);
-    cursor: help;
-}
 
 
 /* Presets */

@@ -39,7 +39,7 @@ echo "✅ Python runs successfully"
 
 # Test dependencies
 echo "Testing Python dependencies..."
-"$PYTHON_PATH" -c "import pyperclip, pynput; print('✅ All dependencies available')"
+"$PYTHON_PATH" -c "import pyperclip, pynput, pyautogui; print('✅ All dependencies available')"
 if [ $? -ne 0 ]; then
     echo "❌ Python dependencies test failed"
     exit 1

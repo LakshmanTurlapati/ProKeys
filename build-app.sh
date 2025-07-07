@@ -97,7 +97,7 @@ else
         echo "✅ Python environment created and dependencies installed"
     else
         echo "⚠️  requirements.txt not found, installing basic dependencies..."
-        ./venv_portable/bin/pip install --upgrade pip pyperclip pynput
+        ./venv_portable/bin/pip install --upgrade pip pyperclip pynput pyautogui
         echo "✅ Python environment created with basic dependencies"
     fi
 fi

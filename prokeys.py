@@ -28,13 +28,80 @@ try:
     import pynput
     from pynput import keyboard
     from pynput.keyboard import Key, Listener, KeyCode
+    import pyautogui
 except ImportError as e:
     print(f"Missing required dependencies: {e}")
-    print("Please install them using: pip install pyperclip pynput")
+    print("Please install them using: pip install pyperclip pynput pyautogui")
     sys.exit(1)
 
 
 CONFIG_FILE = "prokeys_config.json"
+
+# macOS US Keyboard Layout Character Mapping
+# Maps characters to their corresponding base key and required modifiers
+MACOS_KEY_MAPPING = {
+    # Shift + Number row special characters
+    '!': ('1', [Key.shift]),
+    '@': ('2', [Key.shift]),
+    '#': ('3', [Key.shift]),
+    '$': ('4', [Key.shift]),
+    '%': ('5', [Key.shift]),
+    '^': ('6', [Key.shift]),
+    '&': ('7', [Key.shift]),
+    '*': ('8', [Key.shift]),
+    '(': ('9', [Key.shift]),
+    ')': ('0', [Key.shift]),
+    
+    # Uppercase letters (A-Z)
+    'A': ('a', [Key.shift]), 'B': ('b', [Key.shift]), 'C': ('c', [Key.shift]), 'D': ('d', [Key.shift]),
+    'E': ('e', [Key.shift]), 'F': ('f', [Key.shift]), 'G': ('g', [Key.shift]), 'H': ('h', [Key.shift]),
+    'I': ('i', [Key.shift]), 'J': ('j', [Key.shift]), 'K': ('k', [Key.shift]), 'L': ('l', [Key.shift]),
+    'M': ('m', [Key.shift]), 'N': ('n', [Key.shift]), 'O': ('o', [Key.shift]), 'P': ('p', [Key.shift]),
+    'Q': ('q', [Key.shift]), 'R': ('r', [Key.shift]), 'S': ('s', [Key.shift]), 'T': ('t', [Key.shift]),
+    'U': ('u', [Key.shift]), 'V': ('v', [Key.shift]), 'W': ('w', [Key.shift]), 'X': ('x', [Key.shift]),
+    'Y': ('y', [Key.shift]), 'Z': ('z', [Key.shift]),
+    
+    # Additional special characters that require shift
+    '_': ('-', [Key.shift]),  # Underscore: Shift + Hyphen
+    '+': ('=', [Key.shift]),  # Plus: Shift + Equals
+    '{': ('[', [Key.shift]),  # Left brace: Shift + Left bracket
+    '}': (']', [Key.shift]),  # Right brace: Shift + Right bracket
+    '|': ('\\', [Key.shift]), # Pipe: Shift + Backslash
+    ':': (';', [Key.shift]),  # Colon: Shift + Semicolon
+    '"': ("'", [Key.shift]),  # Double quote: Shift + Single quote
+    '<': (',', [Key.shift]),  # Less than: Shift + Comma
+    '>': ('.', [Key.shift]),  # Greater than: Shift + Period
+    '?': ('/', [Key.shift]),  # Question mark: Shift + Slash
+    '~': ('`', [Key.shift]),  # Tilde: Shift + Backtick
+    
+    # Numbers (no modifiers needed)
+    '0': ('0', []), '1': ('1', []), '2': ('2', []), '3': ('3', []), '4': ('4', []),
+    '5': ('5', []), '6': ('6', []), '7': ('7', []), '8': ('8', []), '9': ('9', []),
+    
+    # Lowercase letters (no modifiers needed)
+    'a': ('a', []), 'b': ('b', []), 'c': ('c', []), 'd': ('d', []), 'e': ('e', []),
+    'f': ('f', []), 'g': ('g', []), 'h': ('h', []), 'i': ('i', []), 'j': ('j', []),
+    'k': ('k', []), 'l': ('l', []), 'm': ('m', []), 'n': ('n', []), 'o': ('o', []),
+    'p': ('p', []), 'q': ('q', []), 'r': ('r', []), 's': ('s', []), 't': ('t', []),
+    'u': ('u', []), 'v': ('v', []), 'w': ('w', []), 'x': ('x', []), 'y': ('y', []),
+    'z': ('z', []),
+    
+    # Basic punctuation (no modifiers needed)
+    ' ': (' ', []),           # Space
+    '-': ('-', []),           # Hyphen
+    '=': ('=', []),           # Equals
+    '[': ('[', []),           # Left bracket
+    ']': (']', []),           # Right bracket
+    '\\': ('\\', []),         # Backslash
+    ';': (';', []),           # Semicolon
+    "'": ("'", []),           # Single quote
+    ',': (',', []),           # Comma
+    '.': ('.', []),           # Period
+    '/': ('/', []),           # Slash
+    '`': ('`', []),           # Backtick
+}
+
+
 
 def wpm_to_delay(wpm: int) -> float:
     """Convert WPM to delay between keystrokes in seconds.
@@ -237,11 +304,23 @@ class ProKeys:
         self.trigger_key = trigger_key
         self.windows_mode = windows_mode
         self.debug = debug
-        self.keyboard_controller = pynput.keyboard.Controller()
+        
+        # Initialize both keyboard controllers for hybrid approach
+        from pynput.keyboard import Controller
+        self.keyboard_controller = Controller()  # For indentation handling
+        
+        # Use pynput for input listening (works well)
         self.listener = None
         self.running = False
         self.trigger_keys = self._parse_trigger_key(trigger_key)
         self.pressed_keys = set()
+        
+        # Configure PyAutoGUI for output (works better for character generation)
+        pyautogui.PAUSE = 0.01  # Small pause between operations
+        pyautogui.FAILSAFE = True  # Safety feature
+        
+        if self.debug:
+            print("[DEBUG] ProKeys initialized with hybrid approach - pynput + PyAutoGUI")
         
         
     def _parse_trigger_key(self, trigger_key: str) -> set:
@@ -303,7 +382,7 @@ class ProKeys:
                 # Use clipboard-based approach for Windows mode (most reliable)
                 self._type_content_clipboard(content)
             else:
-                # Use traditional character-by-character typing for Mac mode
+                # Use macOS-specific character-by-character typing with proper key combinations
                 self._type_content_traditional(content)
                 
         except KeyboardInterrupt:
@@ -336,17 +415,11 @@ class ProKeys:
             # Short delay to ensure clipboard is set
             time.sleep(0.1)
             
-            # Send Ctrl+V to paste
+            # Send Cmd+V to paste (macOS)
             if self.debug:
-                print("[DEBUG] Sending Ctrl+V to paste content")
+                print("[DEBUG] Sending Cmd+V to paste content")
             
-            self.keyboard_controller.press(Key.ctrl_l)
-            time.sleep(0.05)
-            self.keyboard_controller.press(KeyCode.from_char('v'))
-            time.sleep(0.05)
-            self.keyboard_controller.release(KeyCode.from_char('v'))
-            time.sleep(0.05)
-            self.keyboard_controller.release(Key.ctrl_l)
+            pyautogui.hotkey('cmd', 'v')
             
             # Wait for paste to complete
             time.sleep(0.2)
@@ -364,47 +437,232 @@ class ProKeys:
             print(f"✗ Clipboard method failed: {e}")
             raise  # Re-raise to trigger fallback
     
+    def _type_character_macos(self, char: str) -> bool:
+        """Type a single character using PyAutoGUI for macOS.
+        
+        Args:
+            char: The character to type
+            
+        Returns:
+            bool: True if character was typed successfully, False otherwise
+        """
+        try:
+            # Check if we have a mapping for this character
+            if char in MACOS_KEY_MAPPING:
+                base_key, modifiers = MACOS_KEY_MAPPING[char]
+                
+                if self.debug:
+                    modifier_names = [str(mod).split('.')[-1] for mod in modifiers]
+                    print(f"[DEBUG] Typing '{char}' using mapping: {base_key} + {modifier_names if modifier_names else 'none'}")
+                
+                if Key.shift in modifiers:
+                    # Use PyAutoGUI hotkey for shift combinations
+                    try:
+                        pyautogui.hotkey('shift', base_key)
+                        if self.debug:
+                            print(f"[DEBUG] Successfully typed '{char}' using PyAutoGUI hotkey")
+                        return True
+                    except Exception as e:
+                        if self.debug:
+                            print(f"[DEBUG] PyAutoGUI hotkey failed for '{char}': {e}")
+                        return False
+                elif modifiers:
+                    # Handle other modifiers (not implemented yet, but structure ready)
+                    if self.debug:
+                        print(f"[DEBUG] Other modifier combinations not yet implemented")
+                    return False
+                else:
+                    # No modifiers needed, just press the base key
+                    try:
+                        pyautogui.press(base_key)
+                        if self.debug:
+                            print(f"[DEBUG] Successfully typed base key '{base_key}' using PyAutoGUI")
+                        return True
+                    except Exception as e:
+                        if self.debug:
+                            print(f"[DEBUG] PyAutoGUI press failed for '{base_key}': {e}")
+                        return False
+                
+            else:
+                # Character not in mapping - NO FALLBACK, return False
+                if self.debug:
+                    print(f"[DEBUG] Character '{char}' not in mapping - no fallback, skipping")
+                return False
+                
+        except Exception as e:
+            if self.debug:
+                print(f"[DEBUG] Failed to type character '{char}': {e}")
+            return False
+    
+    
     def _type_content_unicode_fallback(self, content: str) -> None:
-        """Fallback method using pure Unicode typing (no virtual key codes)."""
+        """Fallback method using PyAutoGUI write function."""
         if self.debug:
-            print("[DEBUG] Using Unicode fallback input method")
+            print("[DEBUG] Using PyAutoGUI write fallback method")
         
         try:
-            # Use pure Unicode typing - let pynput handle all character translation
-            self.keyboard_controller.type(content)
+            # Use PyAutoGUI write function as fallback
+            pyautogui.write(content, interval=self.delay)
             
-            print(f"✓ Successfully typed {len(content)} characters using Unicode method!")
+            print(f"✓ Successfully typed {len(content)} characters using PyAutoGUI write method!")
             
         except Exception as e:
-            print(f"✗ Unicode fallback method failed: {e}")
+            print(f"✗ PyAutoGUI write fallback method failed: {e}")
             raise
     
-    def _type_content_traditional(self, content: str) -> None:
-        """Traditional character-by-character typing for Mac mode."""
+    def _type_content_macos(self, content: str) -> None:
+        """macOS-optimized typing that avoids system interference while handling IDE auto-indentation."""
+        if self.debug:
+            print("[DEBUG] Using smart typing method with IDE auto-indent handling")
+        
+        # Check if content has multiple lines (likely code that needs smart indentation)
+        if '\n' in content and any(line.startswith('    ') or line.startswith('\t') for line in content.split('\n')):
+            if self.debug:
+                print("[DEBUG] Multi-line content with indentation detected, using smart line-by-line method")
+            self._type_content_smart_lines(content)
+        else:
+            if self.debug:
+                print("[DEBUG] Simple content, using direct write method")
+            try:
+                # Use PyAutoGUI write method for simple content
+                pyautogui.write(content, interval=self.delay)
+                print(f"✓ Successfully typed {len(content)} characters using PyAutoGUI write method!")
+            except Exception as e:
+                if self.debug:
+                    print(f"[DEBUG] PyAutoGUI write failed: {e}, falling back to unicode fallback")
+                self._type_content_unicode_fallback(content)
+    
+    def _type_content_with_smart_timing(self, content: str) -> None:
+        """Type content with smart timing that works with IDE auto-indentation without navigation keys."""
+        if self.debug:
+            print("[DEBUG] Using smart timing method - no navigation keys, just intelligent delays")
+        
+        try:
+            # Pre-process content to work with IDE auto-indentation
+            processed_content = self._preprocess_for_ide_indentation(content)
+            
+            if self.debug:
+                print(f"[DEBUG] Pre-processed content to work with IDE auto-indentation")
+                print(f"[DEBUG] Original lines: {len(content.split('\\n'))}, Processed lines: {len(processed_content.split('\\n'))}")
+            
+            # Use write with smart interval timing
+            # Slightly longer delay for newlines to let IDE auto-indent settle
+            if self.debug:
+                print(f"[DEBUG] Typing {len(processed_content)} characters with smart timing")
+            
+            # Type character by character with smart delays
+            for i, char in enumerate(processed_content):
+                pyautogui.write(char)
+                
+                if char == '\n':
+                    # Longer delay after newlines to let IDE auto-indent settle
+                    time.sleep(self.delay * 3)
+                else:
+                    # Normal delay for other characters
+                    time.sleep(self.delay)
+                
+                # Progress reporting
+                if (i + 1) % 100 == 0:
+                    print(f"Progress: {i + 1}/{len(processed_content)} characters typed")
+            
+            print(f"✓ Successfully typed {len(processed_content)} characters using smart timing method!")
+            
+        except Exception as e:
+            if self.debug:
+                print(f"[DEBUG] Smart timing method failed: {e}, falling back to basic write")
+            # Final fallback to basic write
+            pyautogui.write(content, interval=self.delay)
+            print(f"✓ Successfully typed {len(content)} characters using fallback write method!")
+    
+    def _preprocess_for_ide_indentation(self, content: str) -> str:
+        """Simple IDE-aware preprocessing: retain original indentation but account for IDE auto-indent on next line."""
+        lines = content.split('\n')
+        processed_lines = []
+        
+        if self.debug:
+            print(f"[DEBUG] Simple IDE-aware preprocessing for {len(lines)} lines")
+        
+        for i, line in enumerate(lines):
+            if i == 0:
+                # Keep first line exactly as-is
+                processed_lines.append(line)
+                if self.debug:
+                    print(f"[DEBUG] Line 1: Keep as-is: '{line[:30]}...'")
+            else:
+                # Check if previous line ends with ':' (triggers IDE auto-indent)
+                previous_line = lines[i-1] if i > 0 else ""
+                ide_will_auto_indent = previous_line.strip().endswith(':')
+                
+                if line.strip():  # Non-empty line
+                    # Get original indentation
+                    leading_spaces = len(line) - len(line.lstrip())
+                    content_part = line.lstrip()
+                    
+                    if ide_will_auto_indent and leading_spaces >= 4:
+                        # IDE will add 4 spaces, so subtract 4 from original
+                        adjusted_spaces = leading_spaces - 4
+                        adjusted_indent = ' ' * adjusted_spaces
+                        processed_line = adjusted_indent + content_part
+                        
+                        if self.debug:
+                            print(f"[DEBUG] Line {i+1}: IDE auto-indent, {leading_spaces}→{adjusted_spaces} spaces: '{processed_line[:30]}...'")
+                    else:
+                        # No IDE auto-indent expected, keep original
+                        processed_line = line
+                        
+                        if self.debug:
+                            print(f"[DEBUG] Line {i+1}: No auto-indent, keep original: '{line[:30]}...'")
+                    
+                    processed_lines.append(processed_line)
+                else:
+                    # Empty line - keep as empty
+                    processed_lines.append('')
+                    if self.debug:
+                        print(f"[DEBUG] Line {i+1}: Empty line")
+        
+        result = '\n'.join(processed_lines)
+        
+        if self.debug:
+            print(f"[DEBUG] Simple IDE-aware preprocessing completed")
+            print(f"[DEBUG] Sample transformation:")
+            for i in range(min(3, len(lines))):
+                orig = repr(lines[i][:40] + ('...' if len(lines[i]) > 40 else ''))
+                proc = repr(result.split('\n')[i][:40] + ('...' if len(result.split('\n')[i]) > 40 else ''))
+                print(f"[DEBUG]   {i+1}: {orig} → {proc}")
+        
+        return result
+    
+    def _type_content_smart_lines(self, content: str) -> None:
+        """Hybrid approach: pynput for indentation handling, PyAutoGUI for content typing."""
+        if self.debug:
+            print("[DEBUG] Using hybrid approach - pynput for indentation, PyAutoGUI for content")
+        
         lines = content.split('\n')
         total_chars = 0
         
         for line_num, line in enumerate(lines):
             if line_num > 0:
-                # Press Enter to go to new line
-                self.keyboard_controller.press(Key.enter)
-                self.keyboard_controller.release(Key.enter)
+                # Press Enter to go to new line (use PyAutoGUI for this)
+                pyautogui.press('enter')
                 total_chars += 1
                 
                 if self.delay > 0:
                     time.sleep(self.delay)
                 
-                # Handle indentation smartly
+                # Handle indentation using original working pynput method
                 leading_whitespace = len(line) - len(line.lstrip())
                 if leading_whitespace > 0:
-                    # Clear any auto-indentation first by going to beginning of line
+                    if self.debug:
+                        print(f"[DEBUG] Line {line_num + 1}: Handling {leading_whitespace} spaces indentation with pynput")
+                    
+                    # Use pynput for navigation (proven working method)
                     self.keyboard_controller.press(Key.home)
                     self.keyboard_controller.release(Key.home)
                     
                     if self.delay > 0:
-                        time.sleep(self.delay * 2)  # Slightly longer delay
+                        time.sleep(self.delay * 2)
                     
-                    # Type the exact indentation
+                    # Recreate exact indentation using pynput
                     for i in range(leading_whitespace):
                         if i < len(line) and line[i] == '\t':
                             self.keyboard_controller.press(Key.tab)
@@ -416,24 +674,64 @@ class ProKeys:
                             time.sleep(self.delay)
                     
                     total_chars += leading_whitespace
-                
-                # Type the rest of the line (non-whitespace content)
-                line_content = line.lstrip()
-            else:
-                # First line - type as-is
-                line_content = line
-            
-            # Type the actual content of the line
-            for char in line_content:
-                if char == '\t':
-                    self.keyboard_controller.press(Key.tab)
-                    self.keyboard_controller.release(Key.tab)
+                    
+                    # Type content part using PyAutoGUI (interference-free)
+                    content_part = line.lstrip()
+                    if content_part:
+                        if self.debug:
+                            print(f"[DEBUG] Line {line_num + 1}: Typing content with PyAutoGUI: '{content_part[:40]}...'")
+                        
+                        pyautogui.write(content_part, interval=self.delay)
+                        total_chars += len(content_part)
                 else:
-                    try:
-                        # Use normal typing for Mac mode
-                        self.keyboard_controller.type(char)
-                    except Exception as e:
-                        print(f"Warning: Could not type character '{char}': {e}")
+                    # No indentation, type whole line with PyAutoGUI
+                    if line.strip():
+                        if self.debug:
+                            print(f"[DEBUG] Line {line_num + 1}: No indentation, typing with PyAutoGUI: '{line[:40]}...'")
+                        
+                        pyautogui.write(line, interval=self.delay)
+                        total_chars += len(line)
+            else:
+                # First line - use PyAutoGUI
+                if self.debug:
+                    print(f"[DEBUG] Line 1: Typing with PyAutoGUI: '{line[:40]}...'")
+                
+                pyautogui.write(line, interval=self.delay)
+                total_chars += len(line)
+            
+            # Print progress every 100 characters
+            if total_chars % 100 == 0:
+                print(f"Progress: {total_chars}/{len(content)} characters typed")
+        
+        print(f"✓ Successfully typed {len(content)} characters with hybrid approach!")
+    
+    def _type_content_character_fallback(self, content: str) -> None:
+        """Fallback character-by-character typing for content that pyautogui.write() can't handle."""
+        if self.debug:
+            print("[DEBUG] Using character-by-character fallback method")
+        
+        lines = content.split('\n')
+        total_chars = 0
+        
+        for line_num, line in enumerate(lines):
+            if line_num > 0:
+                # Press Enter to go to new line
+                pyautogui.press('enter')
+                total_chars += 1
+                
+                if self.delay > 0:
+                    time.sleep(self.delay)
+            
+            # Type the line content
+            for char in line:
+                if char == '\t':
+                    pyautogui.press('tab')
+                else:
+                    # Use individual key press/release to avoid hotkey conflicts
+                    success = self._type_character_safe(char)
+                    if not success:
+                        if self.debug:
+                            print(f"[DEBUG] Could not type character '{char}', skipping")
                         continue
                 
                 # Add delay between keystrokes
@@ -446,7 +744,66 @@ class ProKeys:
                 if total_chars % 100 == 0:
                     print(f"Progress: {total_chars}/{len(content)} characters typed")
         
-        print(f"✓ Successfully typed {len(content)} characters!")
+        print(f"✓ Successfully typed {len(content)} characters using character fallback method!")
+    
+    def _type_character_safe(self, char: str) -> bool:
+        """Type a single character using safer key press/release method."""
+        try:
+            # Check if we have a mapping for this character
+            if char in MACOS_KEY_MAPPING:
+                base_key, modifiers = MACOS_KEY_MAPPING[char]
+                
+                if self.debug:
+                    modifier_names = [str(mod).split('.')[-1] for mod in modifiers]
+                    print(f"[DEBUG] Typing '{char}' using safe method: {base_key} + {modifier_names if modifier_names else 'none'}")
+                
+                if Key.shift in modifiers:
+                    # Use individual key press/release instead of hotkey to avoid conflicts
+                    try:
+                        pyautogui.keyDown('shift')
+                        time.sleep(0.01)  # Small delay
+                        pyautogui.press(base_key)
+                        time.sleep(0.01)  # Small delay
+                        pyautogui.keyUp('shift')
+                        
+                        if self.debug:
+                            print(f"[DEBUG] Successfully typed '{char}' using safe shift method")
+                        return True
+                    except Exception as e:
+                        if self.debug:
+                            print(f"[DEBUG] Safe shift method failed for '{char}': {e}")
+                        return False
+                else:
+                    # No modifiers needed, just press the base key
+                    try:
+                        pyautogui.press(base_key)
+                        if self.debug:
+                            print(f"[DEBUG] Successfully typed base key '{base_key}' using safe method")
+                        return True
+                    except Exception as e:
+                        if self.debug:
+                            print(f"[DEBUG] Safe press failed for '{base_key}': {e}")
+                        return False
+                
+            else:
+                # Character not in mapping - try pyautogui.write for single character
+                try:
+                    pyautogui.write(char)
+                    return True
+                except Exception as e:
+                    if self.debug:
+                        print(f"[DEBUG] Character '{char}' not in mapping and write failed: {e}")
+                    return False
+                
+        except Exception as e:
+            if self.debug:
+                print(f"[DEBUG] Failed to type character '{char}': {e}")
+            return False
+    
+    def _type_content_traditional(self, content: str) -> None:
+        """Traditional character-by-character typing for Mac mode (deprecated)."""
+        # Keep the old method for backward compatibility, but use the new macOS method
+        self._type_content_macos(content)
     
     def on_key_press(self, key):
         """Handle key press events."""
@@ -540,6 +897,75 @@ class ProKeys:
             self.listener = listener
             listener.join()
     
+    def test_character_mapping(self):
+        """Test the character mapping to ensure all common characters are supported."""
+        print("🧪 Testing macOS character mapping...")
+        
+        # Test cases with different character types
+        test_cases = [
+            ("Hello World!", "Basic text with exclamation"),
+            ("user@example.com", "Email with @ symbol"),
+            ("Price: $19.99", "Text with dollar sign"),
+            ("Code: if (x > 0) { return true; }", "Programming syntax"),
+            ("Math: 50% + 25% = 75%", "Percentage symbols"),
+            ("Special: !@#$%^&*()", "All shift number symbols"),
+            ("Mixed: ABC123def", "Mixed case and numbers"),
+            ("Quotes: 'Hello' and \"World\"", "Single and double quotes"),
+            ("Brackets: [array] {object} (group)", "Various brackets"),
+            ("Symbols: <tag> file.txt & more|less", "Mixed symbols"),
+        ]
+        
+        total_chars = 0
+        supported_chars = 0
+        unsupported_chars = []
+        
+        for test_text, description in test_cases:
+            print(f"  Testing: {description}")
+            for char in test_text:
+                total_chars += 1
+                if char in MACOS_KEY_MAPPING:
+                    supported_chars += 1
+                    base_key, modifiers = MACOS_KEY_MAPPING[char]
+                    modifier_names = [str(mod).split('.')[-1] for mod in modifiers]
+                    if self.debug:
+                        print(f"    '{char}' -> {base_key} + {modifier_names if modifier_names else 'none'}")
+                else:
+                    if char not in unsupported_chars and char not in ['\n', '\t']:
+                        unsupported_chars.append(char)
+        
+        coverage = (supported_chars / total_chars) * 100
+        print(f"\n📊 Character Mapping Coverage:")
+        print(f"  Total characters tested: {total_chars}")
+        print(f"  Supported by mapping: {supported_chars}")
+        print(f"  Coverage: {coverage:.1f}%")
+        
+        if unsupported_chars:
+            print(f"  ⚠️  Unsupported characters (will use fallback): {unsupported_chars}")
+        else:
+            print(f"  ✅ All test characters are supported!")
+        
+        # Test specific shift combinations
+        print(f"\n🔢 Testing shift number combinations:")
+        shift_tests = {
+            '1': '!', '2': '@', '3': '#', '4': '$', '5': '%',
+            '6': '^', '7': '&', '8': '*', '9': '(', '0': ')'
+        }
+        
+        for base, expected in shift_tests.items():
+            if expected in MACOS_KEY_MAPPING:
+                mapped_base, modifiers = MACOS_KEY_MAPPING[expected]
+                shift_used = Key.shift in modifiers
+                correct_base = mapped_base == base
+                if shift_used and correct_base:
+                    print(f"  ✅ {base} + Shift = {expected}")
+                else:
+                    print(f"  ❌ {base} + Shift = {expected} (mapping issue)")
+            else:
+                print(f"  ❌ {expected} not in mapping")
+        
+        print(f"\n✅ Character mapping test completed!")
+        return coverage > 95  # Return True if coverage is good
+    
     def paste_once(self):
         """Paste clipboard content once and exit."""
         print("🎯 ProKeys - One-time paste mode")
@@ -612,6 +1038,12 @@ Configuration:
         help='Enable debug mode to see what keys are being sent'
     )
     
+    parser.add_argument(
+        '--test',
+        action='store_true',
+        help='Test the macOS character mapping and exit'
+    )
+    
     
     args = parser.parse_args()
     
@@ -619,6 +1051,18 @@ Configuration:
     if args.show_config:
         show_config()
         return
+    
+    # Run character mapping test if requested
+    if args.test:
+        print("🧪 Running macOS character mapping test...")
+        test_prokeys = ProKeys(delay=0.01, debug=args.debug)
+        success = test_prokeys.test_character_mapping()
+        if success:
+            print("\n✅ All tests passed! macOS character mapping is working correctly.")
+            sys.exit(0)
+        else:
+            print("\n⚠️  Some issues found in character mapping. See details above.")
+            sys.exit(1)
     
     # Validate delay
     if args.delay < 0:

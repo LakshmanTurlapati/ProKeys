@@ -25,8 +25,7 @@ let pythonProcess = null;
 const defaultConfig = {
   typing_speed_wpm: 120,
   delay: 0.01,
-  trigger_key: "cmd+shift+v",
-  windows_mode: false
+  trigger_key: "cmd+shift+v"
 };
 
 function createWindow() {
@@ -366,10 +365,8 @@ async function startProKeys() {
       '--delay', config.delay.toString()
     ];
     
-    // Add windows-mode flag if enabled
-    if (config.windows_mode) {
-      spawnArgs.push('--windows-mode');
-    }
+    // Windows mode is always disabled for macOS
+    // Backend still supports --windows-mode flag for advanced CLI users
     
     // Add debug flag for troubleshooting (can be enabled via config later)
     if (config.debug) {

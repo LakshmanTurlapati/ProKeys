@@ -9,7 +9,6 @@ const statusText = document.getElementById('status-text');
 const toggleBtn = document.getElementById('toggle-btn');
 const speedSlider = document.getElementById('speed-slider');
 const speedValue = document.getElementById('speed-value');
-const windowsModeCheckbox = document.getElementById('windows-mode');
 
 // Initialize
 async function init() {
@@ -19,7 +18,6 @@ async function init() {
         
         speedSlider.value = config.typing_speed_wpm;
         speedValue.textContent = `${config.typing_speed_wpm} WPM`;
-        windowsModeCheckbox.checked = config.windows_mode || false;
         
         // Check accessibility permission on startup
         const permissionStatus = await window.electronAPI.checkAccessibilityPermission();
@@ -72,11 +70,6 @@ function setupEventListeners() {
         });
     });
     
-    // Windows mode checkbox
-    windowsModeCheckbox.addEventListener('change', (e) => {
-        config.windows_mode = e.target.checked;
-        saveConfig();
-    });
     
     // Listen for ProKeys events
     window.electronAPI.onProKeysOutput((data) => {
@@ -101,7 +94,6 @@ function setupEventListeners() {
         config = newConfig;
         speedSlider.value = config.typing_speed_wpm;
         speedValue.textContent = `${config.typing_speed_wpm} WPM`;
-        windowsModeCheckbox.checked = config.windows_mode || false;
     });
 }
 

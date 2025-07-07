@@ -34,7 +34,13 @@ The resulting app will be "self-signed" (fancy talk for "your Mac built it, so i
 
 ## What is ProKeys?
 
-A minimal utility that re-types clipboard content at adjustable speeds. Set your preferred words-per-minute rate, press `⌘⇧V`, and watch your text appear keystroke by keystroke—perfect for coding, note-taking, or anywhere a regular paste isn't enough.
+A minimal utility that re-types clipboard content with perfect indentation and zero system interference. Set your preferred words-per-minute rate, press `⌘⇧V`, and watch your text appear keystroke by keystroke with precise formatting—perfect for coding, note-taking, or anywhere a regular paste isn't enough.
+
+**Key Features:**
+- **Perfect macOS Integration**: Tailored specifically for macOS US keyboard layout with 1:1 key correspondence
+- **Smart Indentation**: Preserves exact code indentation structure regardless of IDE auto-indent behavior
+- **Zero Interference**: No system shortcuts, emoji panels, or app switching interruptions during typing
+- **Hybrid Approach**: Combines proven indentation handling with interference-free content typing
 
 Inspired by **AutoHotKey** on Windows, ProKeys delivers focused functionality purpose-built for ultra-fast paste on macOS.
 
@@ -42,15 +48,16 @@ Inspired by **AutoHotKey** on Windows, ProKeys delivers focused functionality pu
 
 - **Electron** – Native macOS window, auto-update, and system tray integration
 - **Node.js** – Main process orchestration and IPC messaging
-- **Python** (`pynput`) – Low-level keyboard event generation for reliable typing emulation
+- **Python Hybrid Approach** – Combines `pynput` for precise indentation handling with `PyAutoGUI` for interference-free content typing
 - **HTML/CSS/Vanilla JS** – Minimal interface with clean styling
 
 ## Codebase Overview
 
 - **`main.js`** – Electron app initialization, global shortcut registration, and IPC coordination
-- **`prokeys.py`** – Keyboard event synthesis using `pynput` for typing automation
+- **`prokeys.py`** – Hybrid keyboard automation using `pynput` for indentation and `PyAutoGUI` for content typing
 - **`renderer.js`** – UI logic and user interaction handling
 - **`index.html` & `styles.css`** – Lightweight frontend with minimal styling
+- **`build-app.sh`** – Complete build script for creating macOS application bundle
 
 Additional files include build scripts, auto-updater configuration, and packaging artifacts.
 
