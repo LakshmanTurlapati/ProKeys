@@ -314,6 +314,10 @@ class ProKeys:
         self.running = False
         self.trigger_keys = self._parse_trigger_key(trigger_key)
         self.pressed_keys = set()
+
+        # Typing state management
+        self.typing_in_progress = False
+        self.interrupt_typing = False
         
         # Configure PyAutoGUI for output (works better for character generation)
         pyautogui.PAUSE = 0.01  # Small pause between operations
@@ -370,13 +374,16 @@ class ProKeys:
         if not content:
             print("Clipboard is empty or could not be read.")
             return
-        
+
         print(f"Starting to type {len(content)} characters...")
-        print("Press Ctrl+C to stop typing.")
-        
+
+        # Set typing state and reset interrupt flag
+        self.typing_in_progress = True
+        self.interrupt_typing = False
+
         # Small delay before starting to type
         time.sleep(0.5)
-        
+
         try:
             if self.windows_mode:
                 # Use clipboard-based approach for Windows mode (most reliable)
@@ -384,7 +391,7 @@ class ProKeys:
             else:
                 # Use macOS-specific character-by-character typing with proper key combinations
                 self._type_content_traditional(content)
-                
+
         except KeyboardInterrupt:
             print("\n✗ Typing interrupted by user.")
         except Exception as e:
@@ -395,6 +402,10 @@ class ProKeys:
                 self._type_content_unicode_fallback(content)
             except Exception as fallback_error:
                 print(f"✗ Fallback method also failed: {fallback_error}")
+        finally:
+            # Always reset typing state when done
+            self.typing_in_progress = False
+            self.interrupt_typing = False
     
     def _type_content_clipboard(self, content: str) -> None:
         """Type content using clipboard + Ctrl+V method (most reliable for Windows virtual desktop)."""
@@ -552,15 +563,19 @@ class ProKeys:
             
             # Type character by character with smart delays
             for i, char in enumerate(processed_content):
+                # Check for interrupt
+                if self.interrupt_typing:
+                    return
+
                 pyautogui.write(char)
-                
+
                 if char == '\n':
                     # Longer delay after newlines to let IDE auto-indent settle
                     time.sleep(self.delay * 3)
                 else:
                     # Normal delay for other characters
                     time.sleep(self.delay)
-                
+
                 # Progress reporting
                 if (i + 1) % 100 == 0:
                     print(f"Progress: {i + 1}/{len(processed_content)} characters typed")
@@ -636,11 +651,14 @@ class ProKeys:
         """Hybrid approach: pynput for indentation handling, PyAutoGUI for content typing."""
         if self.debug:
             print("[DEBUG] Using hybrid approach - pynput for indentation, PyAutoGUI for content")
-        
+
         lines = content.split('\n')
         total_chars = 0
-        
+
         for line_num, line in enumerate(lines):
+            # Check for interrupt
+            if self.interrupt_typing:
+                return
             if line_num > 0:
                 # Press Enter to go to new line (use PyAutoGUI for this)
                 pyautogui.press('enter')
@@ -664,6 +682,10 @@ class ProKeys:
                     
                     # Recreate exact indentation using pynput
                     for i in range(leading_whitespace):
+                        # Check for interrupt
+                        if self.interrupt_typing:
+                            return
+
                         if i < len(line) and line[i] == '\t':
                             self.keyboard_controller.press(Key.tab)
                             self.keyboard_controller.release(Key.tab)
@@ -709,11 +731,14 @@ class ProKeys:
         """Fallback character-by-character typing for content that pyautogui.write() can't handle."""
         if self.debug:
             print("[DEBUG] Using character-by-character fallback method")
-        
+
         lines = content.split('\n')
         total_chars = 0
-        
+
         for line_num, line in enumerate(lines):
+            # Check for interrupt
+            if self.interrupt_typing:
+                return
             if line_num > 0:
                 # Press Enter to go to new line
                 pyautogui.press('enter')
@@ -724,6 +749,10 @@ class ProKeys:
             
             # Type the line content
             for char in line:
+                # Check for interrupt
+                if self.interrupt_typing:
+                    return
+
                 if char == '\t':
                     pyautogui.press('tab')
                 else:
@@ -845,22 +874,22 @@ class ProKeys:
                 
             # Remove key from pressed keys set
             self.pressed_keys.discard(processed_key)
-            
+
             # Debug: Print key release (uncomment for debugging)
             # print(f"Key released: {processed_key} | Currently pressed: {self.pressed_keys}")
-            
-            # Exit ONLY on actual Escape key - be very specific
+
+            # Escape key interrupts typing but doesn't exit ProKeys
             if key == Key.esc:
-                print("\n👋 Exiting ProKeys...")
-                return False
+                if self.typing_in_progress:
+                    self.interrupt_typing = True
                 
         except UnicodeDecodeError:
             # Handle macOS pynput Unicode decode issues for special characters
             # Only check for Escape if we can actually identify the key
             try:
                 if key == Key.esc:
-                    print("\n👋 Exiting ProKeys...")
-                    return False
+                    if self.typing_in_progress:
+                        self.interrupt_typing = True
             except:
                 # If we can't even check for Escape, just continue
                 pass
